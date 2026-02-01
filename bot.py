@@ -4,7 +4,7 @@ import requests
 
 # ===== KONFIGURASI LANGSUNG =====
 TOKEN = "7590175438:AAFqBJHECghMybwf-Cgr_vMBGzSbNsbDAVM" # Ganti jika sudah kamu revoke
-CHAT_ID = "ISI_CHAT_ID_KAMU" # Ganti dengan ID Telegram kamu
+CHAT_ID = "1387658073" # Ganti dengan ID Telegram kamu
 
 # Ganti ke BingX
 exchange = ccxt.bingx() 
@@ -75,3 +75,4 @@ if __name__ == "__main__":
     for s in symbols:
         check_momentum(s)
     print("Proses scan selesai.")
+
