@@ -1,0 +1,24 @@
+name: Bot-Jalan-Otomatis
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Jalan otomatis setiap 15 menit
+  workflow_dispatch: # Tombol jalankan manual
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil Kode
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Library
+        run: pip install -r requirements.txt
+
+      - name: Jalankan Bot
+        run: python bot.py
