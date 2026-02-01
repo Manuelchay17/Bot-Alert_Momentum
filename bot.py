@@ -26,12 +26,13 @@ def get_top_symbols():
         tickers = exchange.fetch_tickers()
         df_tickers = pd.DataFrame.from_dict(tickers, orient='index')
         
-        # Filter hanya pair USDT dan pastikan bukan koin aneh (spot)
+        # Filter hanya pair USDT
         df_tickers = df_tickers[df_tickers['symbol'].str.contains('/USDT')]
         
-        # BingX terkadang menggunakan kolom 'quoteVolume' atau 'baseVolume'
-        # Kita urutkan berdasarkan Volume tertinggi agar koin yang dicek adalah yang ramai
-        top_df = df_tickers.sort_values(by='quoteVolume', ascending=False).head(limit_coins)
+        # URUTKAN BERDASARKAN ROI TERTINGGI (Top Gainers)
+        # 'percentage' adalah kolom untuk kenaikan dalam 24 jam
+        top_df = df_tickers.sort_values(by='percentage', ascending=False).head(limit_coins)
+        
         return top_df['symbol'].tolist()
     except Exception as e:
         print(f"Error ambil daftar koin: {e}")
@@ -75,4 +76,5 @@ if __name__ == "__main__":
     for s in symbols:
         check_momentum(s)
     print("Proses scan selesai.")
+
 
