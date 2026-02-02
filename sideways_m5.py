@@ -8,7 +8,7 @@ TOKEN = "7590175438:AAFqBJHECghMybwf-Cgr_vMBGzSbNsbDAVM"
 CHAT_ID = "1387658073"
 
 exchange = ccxt.bingx()
-timeframe = "5m" # Timeframe 5 Menit
+timeframe = "5m"
 limit_coins = 50
 
 def send_telegram(message):
@@ -22,39 +22,34 @@ def get_top_symbols():
         tickers = exchange.fetch_tickers()
         df = pd.DataFrame.from_dict(tickers, orient='index')
         df = df[df['symbol'].str.contains('/USDT')]
-        # Mengambil koin volume tertinggi agar tidak terjebak di koin mati (illiquid)
         return df.sort_values(by='quoteVolume', ascending=False).head(limit_coins)['symbol'].tolist()
     except: return []
 
-def check_sideways_m5(symbol):
+def check_box_sideways(symbol):
     try:
-        # Mengambil 50 candle terakhir untuk akurasi rata-rata
-        ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=50)
+        # Ambil 20 candle terakhir (sekitar 1.5 jam di TF 5m)
+        ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=20)
         df = pd.DataFrame(ohlcv, columns=['time','open','high','low','close','volume'])
         
-        # Indikator Bollinger Bands
-        df['ma'] = df['close'].rolling(window=20).mean()
-        df['std'] = df['close'].rolling(window=20).std()
-        df['upper'] = df['ma'] + (2 * df['std'])
-        df['lower'] = df['ma'] - (2 * df['std'])
+        # Cari harga tertinggi dan terendah dalam "Kotak" tersebut
+        highest_price = df['high'].max()
+        lowest_price = df['low'].min()
         
-        # Lebar pergerakan (Bandwidth) dalam persen
-        df['bandwidth'] = ((df['upper'] - df['lower']) / df['ma']) * 100
+        # Hitung jarak kotak dalam persen
+        # Rumus: ((Highest - Lowest) / Lowest) * 100
+        box_range = ((highest_price - lowest_price) / lowest_price) * 100
         
-        current_bw = df['bandwidth'].iloc[-1]
-        
-        # KRITERIA SIDEWAYS M5: 
-        # Bandwidth di bawah 0.8% (Sangat sempit untuk skala 5 menit)
-        if current_bw < 0.8:
+        # KRITERIA: Jika dalam 20 candle harganya cuma muter-muter di bawah 0.5%
+        # Ini berarti koin benar-benar terjebak di area kotak seperti gambarmu.
+        if box_range < 0.5:
             tv_symbol = symbol.replace('/', '')
-            
             msg = (
-                f"🔲 *M5 SIDEWAYS DETECTED*\n\n"
+                f"📦 *BOX SIDEWAYS DETECTED*\n\n"
                 f"Asset: `{symbol}`\n"
-                f"Range: `{current_bw:.2f}%` (Squeeze)\n"
-                f"Timeframe: `5 Minutes`\n\n"
-                f"💡 *Analisa:* Harga sedang terjebak di range sempit. Siap-siap pasang jaring jika terjadi breakout!"
-                f"\n\n📊 [TradingView](https://www.tradingview.com/chart/?symbol=BINGX:{tv_symbol})"
+                f"Box Range: `{box_range:.2f}%` 🤏\n"
+                f"Timeframe: `M5` (20 Candles)\n\n"
+                f"📍 *Status:* Harga terjebak di area sempit. Cocok untuk strategi nunggu Breakout Kotak!"
+                f"\n\n📊 [Buka TradingView](https://www.tradingview.com/chart/?symbol=BINGX:{tv_symbol})"
             )
             send_telegram(msg)
             return True
@@ -62,12 +57,9 @@ def check_sideways_m5(symbol):
     return False
 
 if __name__ == "__main__":
-    print(f"Scanning Sideways di TF {timeframe}...")
+    print("Mencari koin yang terjebak di area Box...")
     symbols = get_top_symbols()
-    found = 0
     for s in symbols:
-        if check_sideways_m5(s):
-            found += 1
-            print(f"Sideways: {s}")
+        check_box_sideways(s)
         time.sleep(0.3)
-    print(f"Selesai. Ditemukan {found} koin.")
+    print("Scan Selesai.")
